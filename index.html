@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bingo Board Generator</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --panel-alt: #eef2f7;
+      --text: #132238;
+      --muted: #51627a;
+      --border: #c6d2e1;
+      --accent: #0b63ce;
+      --accent-hover: #084fa6;
+      --danger: #b42318;
+      --shadow: 0 12px 28px rgba(12, 34, 60, 0.08);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #eef4fb 0%, var(--bg) 100%);
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .page {
+      width: min(1120px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2rem 0 3rem;
+    }
+
+    header {
+      margin-bottom: 1.5rem;
+    }
+
+    h1, h2, h3 {
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    h1 {
+      font-size: clamp(1.9rem, 3.4vw, 2.8rem);
+      margin-bottom: 0.75rem;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .layout {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: minmax(280px, 390px) minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(198, 210, 225, 0.8);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+    }
+
+    .panel h2 {
+      font-size: 1.25rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .panel > p {
+      margin-bottom: 1rem;
+    }
+
+    .stack {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .field {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .field label,
+    .checkbox-row label,
+    legend {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .hint,
+    .small-note {
+      font-size: 0.94rem;
+      color: var(--muted);
+    }
+
+    input,
+    textarea,
+    select,
+    button {
+      font: inherit;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.78rem 0.9rem;
+      background: #fff;
+      color: var(--text);
+    }
+
+    textarea {
+      min-height: 320px;
+      resize: vertical;
+    }
+
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible,
+    button:focus-visible {
+      outline: 3px solid rgba(11, 99, 206, 0.28);
+      outline-offset: 2px;
+      border-color: var(--accent);
+    }
+
+    fieldset {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.8rem 0.9rem 0.9rem;
+      margin: 0;
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .inline-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.9rem;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: start;
+      gap: 0.7rem;
+      padding: 0.1rem 0;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 1.1rem;
+      height: 1.1rem;
+      margin-top: 0.15rem;
+      accent-color: var(--accent);
+      flex: 0 0 auto;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+      border-radius: 999px;
+      padding: 0.84rem 1.15rem;
+      font-weight: 700;
+      min-height: 48px;
+      transition: transform 0.12s ease, background-color 0.12s ease, opacity 0.12s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .secondary {
+      background: var(--panel-alt);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .summary-box {
+      display: grid;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .status {
+      min-height: 1.6rem;
+      font-weight: 600;
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .status.success {
+      color: #0c5c2c;
+    }
+
+    .summary-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.42rem 0.7rem;
+      border-radius: 999px;
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.92rem;
+    }
+
+    .boards-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .boards-output {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .board-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .board-card h3 {
+      font-size: 1rem;
+      margin-bottom: 0.85rem;
+      text-align: center;
+    }
+
+    .board-table-wrap {
+      width: min(100%, 460px);
+      aspect-ratio: 1 / 1;
+      margin: 0 auto;
+    }
+
+    .board-table {
+      width: 100%;
+      height: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .board-table tr {
+      height: calc(100% / var(--board-size, 5));
+    }
+
+    .board-table caption {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .board-table td {
+      border: 2px solid #22334d;
+      width: calc(100% / var(--board-size, 5));
+      padding: 0.3rem;
+      text-align: center;
+      vertical-align: middle;
+      font-weight: 700;
+      word-break: break-word;
+      hyphens: auto;
+      line-height: 1.2;
+      background: #fff;
+    }
+
+    .board-3 td {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+    }
+
+    .board-5 td {
+      font-size: clamp(0.75rem, 1.2vw, 0.98rem);
+    }
+
+    .free-cell {
+      background: #dceeff;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .empty-state {
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.65);
+    }
+
+    .empty-state p {
+      max-width: 46ch;
+      margin: 0 auto;
+    }
+
+    footer {
+      margin-top: 1.5rem;
+      font-size: 0.94rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      textarea {
+        min-height: 220px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        width: min(100% - 1rem, 1120px);
+        padding-top: 1rem;
+      }
+
+      .panel {
+        padding: 1rem;
+      }
+
+      .boards-header {
+        flex-direction: column;
+        align-items: start;
+      }
+
+      .inline-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .page {
+        width: 100%;
+        padding: 0;
+      }
+
+      .controls-panel,
+      footer,
+      .boards-header p {
+        display: none;
+      }
+
+      .layout {
+        display: block;
+      }
+
+      .board-card {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        break-after: page;
+      }
+
+      .board-card:last-child {
+        break-after: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Bingo Board Generator</h1>
+      <p>Create random 3x3 or 5x5 word-based bingo boards, preview them in the browser, and download them as Word-compatible <code>.doc</code> or plain <code>.html</code> files.</p>
+    </header>
+
+    <main class="layout">
+      <section class="panel controls-panel" aria-labelledby="controls-heading">
+        <h2 id="controls-heading">Board settings</h2>
+        <p>Enter one word or phrase per line. Commas and semicolons also work.</p>
+
+        <form id="generatorForm" class="stack" novalidate>
+          <div class="field">
+            <label for="titleInput">Board title</label>
+            <input id="titleInput" name="title" type="text" value="Bingo" maxlength="60" autocomplete="off" />
+            <div class="hint">Shown above each board and used in the download file name.</div>
+          </div>
+
+          <div class="field">
+            <label for="wordsInput">Words or phrases</label>
+            <textarea id="wordsInput" name="words" spellcheck="false" placeholder="Example&#10;Oslo&#10;Bergen&#10;Trondheim&#10;Tromsø"></textarea>
+            <div class="hint" id="wordRules">You need enough unique words to fill the board.</div>
+          </div>
+
+          <fieldset>
+            <legend>Layout</legend>
+            <div class="inline-grid">
+              <div class="field">
+                <label for="boardSize">Board size</label>
+                <select id="boardSize" name="boardSize">
+                  <option value="3">3 x 3</option>
+                  <option value="5" selected>5 x 5</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="boardCount">Number of boards</label>
+                <input id="boardCount" name="boardCount" type="number" min="1" max="200" value="10" inputmode="numeric" />
+              </div>
+            </div>
+
+            <div class="checkbox-row">
+              <input id="freeCenter" name="freeCenter" type="checkbox" />
+              <label for="freeCenter">Use a free center square</label>
+            </div>
+            <div class="small-note" id="requiredWordsText"></div>
+          </fieldset>
+
+          <div class="actions">
+            <button type="submit" class="primary">Generate boards</button>
+            <button type="button" class="secondary" id="downloadDocBtn" disabled>Download Word (.doc)</button>
+            <button type="button" class="secondary" id="downloadHtmlBtn" disabled>Download HTML</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="preview-heading">
+        <div class="boards-header">
+          <div>
+            <h2 id="preview-heading">Preview</h2>
+            <p>The preview updates after generation. Each board uses a random selection and order of your words.</p>
+          </div>
+        </div>
+
+        <div class="summary-box">
+          <div id="status" class="status" aria-live="polite"></div>
+          <div id="summary" class="summary-pills" aria-live="polite"></div>
+        </div>
+
+        <div id="boardsOutput" class="boards-output" aria-live="polite">
+          <div class="empty-state">
+            <p>No boards yet. Add words, choose the board size and board count, then click <strong>Generate boards</strong>.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Static page. No server required. Upload the file to GitHub Pages and it will run entirely in the browser.
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+      const form = document.getElementById('generatorForm');
+      const titleInput = document.getElementById('titleInput');
+      const wordsInput = document.getElementById('wordsInput');
+      const boardSizeInput = document.getElementById('boardSize');
+      const boardCountInput = document.getElementById('boardCount');
+      const freeCenterInput = document.getElementById('freeCenter');
+      const requiredWordsText = document.getElementById('requiredWordsText');
+      const wordRules = document.getElementById('wordRules');
+      const statusEl = document.getElementById('status');
+      const summaryEl = document.getElementById('summary');
+      const boardsOutput = document.getElementById('boardsOutput');
+      const downloadDocBtn = document.getElementById('downloadDocBtn');
+      const downloadHtmlBtn = document.getElementById('downloadHtmlBtn');
+
+      const state = {
+        boards: [],
+        config: null,
+        words: []
+      };
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function slugify(value) {
+        return value
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'bingo-boards';
+      }
+
+      function parseWords(raw) {
+        const seen = new Set();
+        return raw
+          .split(/[\n,;]+/)
+          .map((entry) => entry.trim())
+          .filter(Boolean)
+          .filter((entry) => {
+            const key = entry.toLocaleLowerCase();
+            if (seen.has(key)) {
+              return false;
+            }
+            seen.add(key);
+            return true;
+          });
+      }
+
+      function shuffle(array) {
+        const copy = [...array];
+        for (let index = copy.length - 1; index > 0; index -= 1) {
+          const swapIndex = Math.floor(Math.random() * (index + 1));
+          [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+        }
+        return copy;
+      }
+
+      function requiredWords(size, freeCenter) {
+        return (size * size) - (freeCenter ? 1 : 0);
+      }
+
+      function getExportBoardSideMm(size) {
+        return size === 3 ? 160 : 160;
+      }
+
+      function getExportCellSizeMm(size) {
+        return getExportBoardSideMm(size) / size;
+      }
+
+      function getExportFontSizePt(size) {
+        return size === 3 ? 18 : 11;
+      }
+
+      function boardKey(cells) {
+        return cells.map((cell) => (cell.free ? '__FREE__' : cell.text)).join('|');
+      }
+
+      function buildBoard(words, size, freeCenter) {
+        const required = requiredWords(size, freeCenter);
+        const selected = shuffle(words).slice(0, required);
+        const arranged = shuffle(selected);
+        const middleIndex = Math.floor((size * size) / 2);
+        const cells = [];
+        let wordIndex = 0;
+
+        for (let index = 0; index < size * size; index += 1) {
+          if (freeCenter && index === middleIndex) {
+            cells.push({ text: 'FREE', free: true });
+          } else {
+            cells.push({ text: arranged[wordIndex], free: false });
+            wordIndex += 1;
+          }
+        }
+
+        return cells;
+      }
+
+      function generateBoards(words, size, freeCenter, count) {
+        const seen = new Set();
+        const boards = [];
+        const maxAttempts = Math.max(500, count * 400);
+        let attempts = 0;
+
+        while (boards.length < count && attempts < maxAttempts) {
+          const cells = buildBoard(words, size, freeCenter);
+          const key = boardKey(cells);
+          if (!seen.has(key)) {
+            seen.add(key);
+            boards.push(cells);
+          }
+          attempts += 1;
+        }
+
+        return {
+          boards,
+          complete: boards.length === count
+        };
+      }
+
+      function updateRules() {
+        const size = Number(boardSizeInput.value);
+        const useFreeCenter = freeCenterInput.checked;
+        const needed = requiredWords(size, useFreeCenter);
+        requiredWordsText.textContent = `Required unique words: ${needed}`;
+        wordRules.textContent = `You need at least ${needed} unique words for the selected layout.`;
+      }
+
+      function setStatus(message, type = '') {
+        statusEl.textContent = message;
+        statusEl.className = `status${type ? ` ${type}` : ''}`;
+      }
+
+      function renderSummary(config, uniqueWordCount) {
+        summaryEl.innerHTML = '';
+        const items = [
+          `${config.count} board${config.count === 1 ? '' : 's'}`,
+          `${config.size} x ${config.size}`,
+          `${uniqueWordCount} unique word${uniqueWordCount === 1 ? '' : 's'}`,
+          config.freeCenter ? 'Free center' : 'No free center'
+        ];
+
+        for (const item of items) {
+          const pill = document.createElement('span');
+          pill.className = 'pill';
+          pill.textContent = item;
+          summaryEl.appendChild(pill);
+        }
+      }
+
+      function createBoardTable(board, boardNumber, config) {
+        const table = document.createElement('table');
+        table.className = `board-table board-${config.size}`;
+        table.style.setProperty('--board-size', String(config.size));
+        table.setAttribute('aria-label', `${config.title}, board ${boardNumber}`);
+
+        const caption = document.createElement('caption');
+        caption.textContent = `${config.title} - board ${boardNumber}`;
+        table.appendChild(caption);
+
+        for (let row = 0; row < config.size; row += 1) {
+          const tr = document.createElement('tr');
+          for (let col = 0; col < config.size; col += 1) {
+            const cell = board[(row * config.size) + col];
+            const td = document.createElement('td');
+            td.textContent = cell.text;
+            if (cell.free) {
+              td.classList.add('free-cell');
+            }
+            tr.appendChild(td);
+          }
+          table.appendChild(tr);
+        }
+
+        return table;
+      }
+
+      function renderBoards() {
+        boardsOutput.innerHTML = '';
+
+        if (!state.boards.length || !state.config) {
+          boardsOutput.innerHTML = `
+            <div class="empty-state">
+              <p>No boards yet. Add words, choose the board size and board count, then click <strong>Generate boards</strong>.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        state.boards.forEach((board, index) => {
+          const article = document.createElement('article');
+          article.className = 'board-card';
+
+          const heading = document.createElement('h3');
+          heading.textContent = `${state.config.title} - board ${index + 1}`;
+          article.appendChild(heading);
+
+          const tableWrap = document.createElement('div');
+          tableWrap.className = 'board-table-wrap';
+          tableWrap.appendChild(createBoardTable(board, index + 1, state.config));
+          article.appendChild(tableWrap);
+
+          fragment.appendChild(article);
+        });
+
+        boardsOutput.appendChild(fragment);
+      }
+
+      function boardTableMarkup(board, boardNumber, config) {
+        const boardSideMm = getExportBoardSideMm(config.size).toFixed(2);
+        const cellSizeMm = getExportCellSizeMm(config.size).toFixed(2);
+        const fontSizePt = getExportFontSizePt(config.size).toFixed(2);
+        let rows = '';
+
+        for (let row = 0; row < config.size; row += 1) {
+          let cells = '';
+          for (let col = 0; col < config.size; col += 1) {
+            const cell = board[(row * config.size) + col];
+            const freeClass = cell.free ? ' class="free-cell"' : '';
+            const freeStyle = cell.free ? ' background: #dbeafe;' : '';
+            cells += `<td${freeClass} style="width: ${cellSizeMm}mm; height: ${cellSizeMm}mm; font-size: ${fontSizePt}pt;${freeStyle}">${escapeHtml(cell.text)}</td>`;
+          }
+          rows += `<tr style="height: ${cellSizeMm}mm;">${cells}</tr>`;
+        }
+
+        return `
+          <section class="board-page">
+            <h1>${escapeHtml(config.title)} - board ${boardNumber}</h1>
+            <div class="board-wrap" align="center">
+              <table class="board-table board-${config.size}" style="width: ${boardSideMm}mm; height: ${boardSideMm}mm;" aria-label="${escapeHtml(config.title)} board ${boardNumber}">
+                <caption>${escapeHtml(config.title)} - board ${boardNumber}</caption>
+                ${rows}
+              </table>
+            </div>
+          </section>
+        `;
+      }
+
+      function buildExportDocument() {
+        if (!state.boards.length || !state.config) {
+          return '';
+        }
+
+        const boardMarkup = state.boards
+          .map((board, index) => boardTableMarkup(board, index + 1, state.config))
+          .join('');
+
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${escapeHtml(state.config.title)}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #111827;
+    }
+    .board-page {
+      page-break-after: always;
+      page-break-inside: avoid;
+      padding-top: 6mm;
+      text-align: center;
+    }
+    .board-page:last-child {
+      page-break-after: auto;
+    }
+    h1 {
+      margin: 0 0 8mm;
+      font-size: 20pt;
+      text-align: center;
+    }
+    .board-wrap {
+      text-align: center;
+    }
+    .board-table {
+      border-collapse: collapse;
+      table-layout: fixed;
+      margin: 0 auto;
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+    .board-table caption {
+      position: absolute;
+      left: -9999px;
+    }
+    .board-table td {
+      border: 1.5pt solid #111827;
+      text-align: center;
+      vertical-align: middle;
+      padding: 2mm;
+      font-weight: 700;
+      line-height: 1.15;
+      word-wrap: break-word;
+      word-break: break-word;
+    }
+    .free-cell {
+      background: #dbeafe;
+    }
+  </style>
+</head>
+<body>
+${boardMarkup}
+</body>
+</html>`;
+      }
+
+      function triggerDownload(content, fileName, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function downloadDoc() {
+        const html = buildExportDocument();
+        if (!html) {
+          setStatus('Generate boards before downloading.', 'error');
+          return;
+        }
+        const fileName = `${slugify(state.config.title)}-${state.config.count}-boards.doc`;
+        triggerDownload(`\ufeff${html}`, fileName, 'application/msword');
+      }
+
+      function downloadHtml() {
+        const html = buildExportDocument();
+        if (!html) {
+          setStatus('Generate boards before downloading.', 'error');
+          return;
+        }
+        const fileName = `${slugify(state.config.title)}-${state.config.count}-boards.html`;
+        triggerDownload(html, fileName, 'text/html;charset=utf-8');
+      }
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+
+        const title = titleInput.value.trim() || 'Bingo';
+        const size = Number(boardSizeInput.value);
+        const count = Number(boardCountInput.value);
+        const freeCenter = freeCenterInput.checked;
+        const words = parseWords(wordsInput.value);
+        const needed = requiredWords(size, freeCenter);
+
+        if (!Number.isInteger(count) || count < 1 || count > 200) {
+          setStatus('Enter a number of boards between 1 and 200.', 'error');
+          downloadDocBtn.disabled = true;
+          downloadHtmlBtn.disabled = true;
+          return;
+        }
+
+        if (words.length < needed) {
+          setStatus(`Not enough unique words. You need at least ${needed}.`, 'error');
+          renderSummary({ title, size, count, freeCenter }, words.length);
+          boardsOutput.innerHTML = `
+            <div class="empty-state">
+              <p>Add more unique words and try again.</p>
+            </div>
+          `;
+          downloadDocBtn.disabled = true;
+          downloadHtmlBtn.disabled = true;
+          return;
+        }
+
+        const result = generateBoards(words, size, freeCenter, count);
+
+        state.words = words;
+        state.config = { title, size, count: result.boards.length, freeCenter };
+        state.boards = result.boards;
+
+        renderSummary(state.config, words.length);
+        renderBoards();
+        downloadDocBtn.disabled = state.boards.length === 0;
+        downloadHtmlBtn.disabled = state.boards.length === 0;
+
+        if (result.complete) {
+          setStatus(`Generated ${result.boards.length} board${result.boards.length === 1 ? '' : 's'}.`, 'success');
+        } else {
+          setStatus(`Generated ${result.boards.length} unique board${result.boards.length === 1 ? '' : 's'} before hitting the uniqueness limit.`, 'error');
+        }
+      });
+
+      boardSizeInput.addEventListener('change', updateRules);
+      freeCenterInput.addEventListener('change', updateRules);
+      downloadDocBtn.addEventListener('click', downloadDoc);
+      downloadHtmlBtn.addEventListener('click', downloadHtml);
+
+      updateRules();
+    })();
+  </script>
+</body>
+</html>
